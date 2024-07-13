@@ -8,6 +8,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Alert,
+  Button,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import styles from './Styles';
@@ -17,6 +19,42 @@ import {
   FileTypeEnum,
   FileInfo,
 } from 'theta-client-react-native';
+import RNFetchBlob from 'rn-fetch-blob';
+
+const downloadImage = async (imageFileName: string, imageUrl: string) => {
+  const {config, fs} = RNFetchBlob;
+  const PictureDir = fs.dirs.PictureDir;
+
+  const date = new Date();
+  const fileName = `${imageFileName}_${Math.floor(
+    date.getTime() + date.getSeconds() / 2,
+  )}.jpg`;
+
+  const options = {
+    fileCache: true,
+    addAndroidDownloads: {
+      useDownloadManager: true,
+      notification: true,
+      path: `${PictureDir}/${fileName}`,
+      description: 'Downloading image.',
+    },
+  };
+
+  config(options)
+    .fetch('GET', imageUrl)
+    .progress((received, total) => {
+      const percentage = Math.round((received / total) * 100);
+    })
+    .then(res => {
+      Alert.alert(
+        'Download Success',
+        'Image downloaded successfully. Path: ' + res.path(),
+      );
+    })
+    .catch(err => {
+      Alert.alert('Download Failed', 'File download failed.');
+    });
+};
 
 const listPhotos = async () => {
   const {fileList} = await listFiles(FileTypeEnum.IMAGE, 0, 1000);
@@ -57,7 +95,19 @@ const ListPhotos = ({navigation}) => {
           width: Dimensions.get('window').width - 108,
         }}>
         <View style={styles.largeSpacer} />
-        <Text style={styles.fileName}>{item.name}</Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+          <Text style={styles.fileName}>{item.name}</Text>
+          <Button
+            title="Download"
+            onPress={() => downloadImage(item.name, item.fileUrl)}
+          />
+        </View>
+
         <View style={styles.largeSpacer} />
       </View>
     </TouchableOpacity>
